@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creador de Infografías - 12 Arquitecturas de Software</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <!-- Fontes Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <!-- html2canvas for PNG rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- JSZip and FileSaver for Carousel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Archivo de estilos personalizados -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="bg-slate-50 text-slate-900 dark:bg-[#050811] dark:text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden pb-10 transition-colors duration-300">
+
+    <!-- Header / Control Panel -->
+    <header class="bg-white/90 border-b border-slate-200 dark:bg-slate-900/90 dark:border-slate-800/80 sticky top-0 z-50 px-6 py-4 backdrop-blur-md transition-colors duration-300">
+        <div class="max-w-7xl mx-auto flex flex-col xl:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <span>🎨</span> Generador de Arquitecturas
+                </h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Selecciona el modo de trabajo y descarga el material.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Mode Toggle -->
+                <div class="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex gap-1">
+                    <button onclick="setMode('single')" id="mode-single" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-500 text-white transition-all">
+                        📄 Individual
+                    </button>
+                    <button onclick="setMode('versus')" id="mode-versus" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-all">
+                        ⚔️ Versus
+                    </button>
+                </div>
+
+                <!-- Theme Toggle -->
+                <button onclick="toggleTheme()" id="theme-toggle" title="Cambiar Tema"
+                    class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800 transition-all text-slate-500 dark:text-slate-400">
+                    🌞
+                </button>
+
+                <!-- SINGLE MODE CONTROLS -->
+                <div id="controls-single" class="flex items-center gap-3">
+                    <button onclick="toggleChaos()" id="chaos-btn" class="bg-red-500/10 text-red-600 dark:text-red-500 border border-red-500/30 hover:bg-red-500/20 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+                        🔥 Simular Fallo BD
+                    </button>
+
+                    <div class="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex gap-1">
+                        <select id="arch-selector" onchange="changeArchitecture()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 dark:bg-slate-900 dark:text-white border-none outline-none cursor-pointer">
+                            <option value="monolith">1. Monolítica</option>
+                            <option value="microservices">2. Microservicios</option>
+                            <option value="event_driven">3. Orientada a Eventos</option>
+                            <option value="layered">4. Por Capas</option>
+                            <option value="hexagonal">5. Hexagonal</option>
+                            <option value="serverless">6. Serverless</option>
+                            <option value="microkernel">7. Microkernel</option>
+                            <option value="soa">8. SOA</option>
+                            <option value="space_based">9. Basada en Espacio</option>
+                            <option value="p2p">10. Peer-to-Peer</option>
+                            <option value="master_slave">11. Maestro-Esclavo</option>
+                            <option value="pipe_filter">12. Tubería y Filtro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- VERSUS MODE CONTROLS -->
+                <div id="controls-versus" class="hidden flex items-center gap-3">
+                    <div class="bg-cyan-50 dark:bg-cyan-900/30 p-1 rounded-xl border border-cyan-200 dark:border-cyan-800 flex gap-1">
+                        <select id="vs-selector-a" onchange="renderVersus()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent text-cyan-900 dark:text-cyan-100 border-none outline-none cursor-pointer">
+                            <option value="monolith" selected>Monolítica</option>
+                            <option value="microservices">Microservicios</option>
+                            <option value="layered">Por Capas</option>
+                            <option value="hexagonal">Hexagonal</option>
+                            <!-- Agrega más según necesites -->
+                        </select>
+                    </div>
+                    <span class="text-xs font-bold text-slate-400">VS</span>
+                    <div class="bg-purple-50 dark:bg-purple-900/30 p-1 rounded-xl border border-purple-200 dark:border-purple-800 flex gap-1">
+                        <select id="vs-selector-b" onchange="renderVersus()" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent text-purple-900 dark:text-purple-100 border-none outline-none cursor-pointer">
+                            <option value="monolith">Monolítica</option>
+                            <option value="microservices" selected>Microservicios</option>
+                            <option value="serverless">Serverless</option>
+                            <option value="event_driven">Event Driven</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Language Selector -->
+                <div class="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex gap-1">
+                    <button onclick="changeLanguage('es')" id="lang-es" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 text-white dark:text-slate-950 transition-all">🇪🇸 ES</button>
+                    <button onclick="changeLanguage('pt')" id="lang-pt" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-white transition-all">🇧🇷 PT</button>
+                </div>
+
+                <!-- Aspect Ratio -->
+                <div class="bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 flex gap-1">
+                    <button onclick="setAspect('16-9')" id="aspect-16-9" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500 text-white dark:text-slate-950 transition-all">📐 16:9</button>
+                    <button onclick="setAspect('1-1')" id="aspect-1-1" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-white transition-all">⬛ 1:1</button>
+                </div>
+
+                <!-- Export Buttons -->
+                <button onclick="exportInfographic()" class="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white dark:text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2">
+                    💾 Descargar Pantalla
+                </button>
+                <button onclick="exportCarousel()" id="btn-export-carousel" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white dark:text-slate-950 font-bold text-xs px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
+                    📚 Exportar Carrusel
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4">
+
+        <!-- 1. SINGLE INFOGRAPHIC CONTAINER -->
+        <div id="infographic-card"
+            class="bg-white dark:bg-[#080b11] text-slate-900 dark:text-white relative transition-all duration-300 overflow-hidden flex flex-col justify-between p-12 border border-slate-200 dark:border-slate-900 shadow-sm"
+            style="width: 1200px; height: 675px;">
+
+            <!-- Tech Grid Background -->
+            <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#141a29_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-60 dark:opacity-40 pointer-events-none transition-colors duration-300"></div>
+
+            <!-- Glowing background accents -->
+            <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-300"></div>
+            <div class="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/20 dark:bg-purple-500/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-300"></div>
+
+            <!-- Chaos Alert Overlay -->
+            <div id="chaos-alert" class="hidden absolute top-4 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-2 rounded-full font-bold text-xs shadow-lg z-50 animate-bounce">
+                ALERTA CRÍTICA DE SISTEMA
+            </div>
+
+            <!-- Top Title Segment -->
+            <div class="text-center relative z-10 mt-4">
+                <h2 id="info-main-title" contenteditable="true" class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-cyan-600 dark:from-white dark:via-slate-200 dark:to-cyan-300 bg-clip-text text-transparent outline-none focus:border-b focus:border-cyan-500">Arquitectura Monolítica</h2>
+                <p id="info-subtitle" contenteditable="true" class="text-cyan-600 dark:text-cyan-400 font-bold text-xs uppercase tracking-widest mt-2 outline-none">ANALOGÍA: EL RESTAURANTE DE UN SOLO HOMBRE</p>
+                
+                <!-- Casos Reales -->
+                <div class="mt-4 flex justify-center items-center gap-2">
+                    <span id="label-real-cases" class="text-[9px] uppercase font-bold text-slate-500 dark:text-slate-400">Implementado por:</span>
+                    <div id="real-cases-badges" class="flex gap-2">
+                        <!-- Badges inyectadas por JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Core Graphic / Cards Layout -->
+            <div class="flex items-center justify-between gap-6 my-auto relative z-10">
+
+                <!-- Left Column -->
+                <div class="flex flex-col gap-4 w-[280px]">
+                    <div class="p-4 rounded-xl border border-cyan-200 bg-slate-50 dark:border-cyan-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400">Concepto</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-500/20 font-mono">01</span>
+                        </div>
+                        <h4 id="card-l1-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Estructura Unificada</h4>
+                        <p id="card-l1-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Toda la aplicación reside en un único servidor y base de código.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-cyan-200 bg-slate-50 dark:border-cyan-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400">Ventajas</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-500/20 font-mono">02</span>
+                        </div>
+                        <h4 id="card-l2-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Desarrollo Veloz</h4>
+                        <p id="card-l2-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Súper rápido de construir al inicio, barato y fácil para un MVP.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-cyan-200 bg-slate-50 dark:border-cyan-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-cyan-600 dark:text-cyan-400">Despliegue</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 border border-cyan-200 dark:bg-cyan-950 dark:text-cyan-400 dark:border-cyan-500/20 font-mono">03</span>
+                        </div>
+                        <h4 id="card-l3-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Un Solo Artefacto</h4>
+                        <p id="card-l3-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Ideal para equipos pequeños que necesitan validar rápido en el mercado.</p>
+                    </div>
+                </div>
+
+                <!-- Central Render -->
+                <div id="monolith-body" class="relative w-[480px] h-[340px] rounded-3xl border-2 border-cyan-400 dark:border-cyan-500 bg-slate-50 dark:bg-[#070b13]/90 flex flex-col justify-between p-5 glow-cyan transition-all duration-300">
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-cyan-500 dark:bg-cyan-400"></span>
+                            <span class="text-[9px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">SYSTEM CORE</span>
+                        </div>
+                        <div class="text-[8px] font-mono text-slate-500">NODE: ONLINE</div>
+                    </div>
+                    <div class="flex-grow flex items-center justify-between relative mt-2">
+                        <div id="core-box" class="w-[160px] h-[160px] rounded-2xl bg-white border border-cyan-200 dark:bg-slate-900/60 dark:border-cyan-500/40 p-3 flex flex-col items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.15)] z-20">
+                            <svg class="w-14 h-14 text-cyan-500 dark:text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                            <span id="label-chef" class="text-[10px] font-bold text-slate-800 dark:text-slate-200 text-center">El Chef</span>
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-50 border border-cyan-200 text-cyan-700 dark:bg-cyan-950/80 dark:border-cyan-500/30 text-[7px] dark:text-cyan-400 font-mono tracking-wider uppercase">MAIN HUB</span>
+                        </div>
+                        <div class="absolute inset-0 pointer-events-none z-10">
+                            <svg class="w-full h-full" viewBox="0 0 440 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path id="conn-1" d="M 160 110 L 220 110 C 240 110, 240 40, 260 40 L 300 40" stroke="currentColor" class="text-cyan-400 dark:text-cyan-500" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+                                <path id="conn-2" d="M 160 110 L 300 110" stroke="currentColor" class="text-cyan-400 dark:text-cyan-500" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+                                <path id="conn-3" d="M 160 110 L 220 110 C 240 110, 240 180, 260 180 L 300 180" stroke="currentColor" class="text-cyan-400 dark:text-cyan-500" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 4" />
+                            </svg>
+                        </div>
+                        <div class="flex flex-col gap-3 w-[150px] z-20">
+                            <div id="node-1-box" class="p-2 rounded-xl bg-white border border-slate-200 dark:bg-slate-900/80 dark:border-slate-800 flex items-center gap-2"><div class="text-purple-500 dark:text-purple-400"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg></div><div class="flex flex-col"><span id="label-db" class="text-[9px] font-bold text-slate-800 dark:text-slate-200">Base de Datos</span></div></div>
+                            <div id="node-2-box" class="p-2 rounded-xl bg-white border border-slate-200 dark:bg-slate-900/80 dark:border-slate-800 flex items-center gap-2"><div class="text-purple-500 dark:text-purple-400"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect></svg></div><div class="flex flex-col"><span id="label-ui" class="text-[9px] font-bold text-slate-800 dark:text-slate-200">Interfaz</span></div></div>
+                            <div id="node-3-box" class="p-2 rounded-xl bg-white border border-slate-200 dark:bg-slate-900/80 dark:border-slate-800 flex items-center gap-2"><div class="text-purple-500 dark:text-purple-400"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle></svg></div><div class="flex flex-col"><span id="label-logic" class="text-[9px] font-bold text-slate-800 dark:text-slate-200">Lógica</span></div></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-[8px] text-slate-500 font-mono border-t border-slate-200 dark:border-slate-900 pt-2 transition-colors duration-300">
+                        <div>LATENCY: 12ms</div><div>LOAD: 42%</div><div id="footer-type">TIPO: ALL-IN-ONE</div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="flex flex-col gap-4 w-[280px]">
+                    <div class="p-4 rounded-xl border border-purple-200 bg-slate-50 dark:border-purple-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">Puntos Débiles</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-500/20 font-mono">04</span>
+                        </div>
+                        <h4 id="card-r1-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Acoplamiento Total</h4>
+                        <p id="card-r1-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Si un módulo falla, toda la aplicación sufre un apagón instantáneo.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-purple-200 bg-slate-50 dark:border-purple-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">Rendimiento</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-500/20 font-mono">05</span>
+                        </div>
+                        <h4 id="card-r2-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Efecto Embudo</h4>
+                        <p id="card-r2-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Si entran demasiados usuarios, el servicio se satura y colapsa.</p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-purple-200 bg-slate-50 dark:border-purple-500/20 dark:bg-slate-950/80 transition-colors duration-300">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[9px] uppercase font-bold tracking-wider text-purple-600 dark:text-purple-400">Escalado</span>
+                            <span class="text-[8px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-500/20 font-mono">06</span>
+                        </div>
+                        <h4 id="card-r3-title" contenteditable="true" class="font-bold text-sm text-slate-900 dark:text-white outline-none">Todo o Nada</h4>
+                        <p id="card-r3-desc" contenteditable="true" class="text-[10px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed outline-none">Para escalar una función, debes duplicar todo el servidor completo.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Segment -->
+            <div class="flex justify-between items-center border-t border-slate-200 dark:border-slate-900/60 pt-4 relative z-10 text-[10px] text-slate-500 transition-colors duration-300">
+                <span>🎯 Diseño de Arquitectura de Software de Alto Nivel</span>
+                <span class="font-mono text-cyan-600/80 dark:text-cyan-500/60">Exportado Vía Generador de Arquitecturas</span>
+            </div>
+        </div>
+
+        <!-- 2. VERSUS INFOGRAPHIC CONTAINER -->
+        <div id="versus-card"
+            class="hidden bg-white dark:bg-[#080b11] text-slate-900 dark:text-white relative transition-all duration-300 overflow-hidden flex flex-col p-12 border border-slate-200 dark:border-slate-900 shadow-sm"
+            style="width: 1200px; height: 675px;">
+            
+            <!-- Background splits -->
+            <div class="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-cyan-500/5 to-transparent border-r border-slate-200/50 dark:border-slate-800/50 pointer-events-none"></div>
+            <div class="absolute top-0 bottom-0 right-0 w-1/2 bg-gradient-to-l from-purple-500/5 to-transparent pointer-events-none"></div>
+            <div class="absolute inset-0 bg-[radial-gradient(#cbd5e1_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#141a29_1.5px,transparent_1.5px)] [background-size:24px_24px] opacity-40 pointer-events-none"></div>
+
+            <!-- VS Header -->
+            <div class="text-center relative z-10 mb-8 mt-2">
+                <span class="px-3 py-1 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full text-[10px] font-bold tracking-widest uppercase mb-3 inline-block shadow-lg">Comparativa de Arquitecturas</span>
+                <h2 id="vs-main-title" class="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-cyan-600 via-slate-700 to-purple-600 dark:from-cyan-400 dark:via-white dark:to-purple-400 bg-clip-text text-transparent">
+                    Monolítica VS Microservicios
+                </h2>
+            </div>
+
+            <!-- VS Columns -->
+            <div class="flex items-stretch justify-between gap-12 relative z-10 flex-grow">
+                
+                <!-- Arch A Column -->
+                <div class="flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 id="vs-a-title" class="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-cyan-500 pb-2 mb-2">Monolítica</h3>
+                        <div id="vs-a-cases" class="flex gap-1 mb-4 flex-wrap">
+                            <!-- Badges inyectadas por JS -->
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-950/80 border-l-4 border-cyan-500 shadow-sm">
+                                <span class="text-[9px] uppercase font-bold text-cyan-600 dark:text-cyan-400 mb-1 block">Ventaja Principal</span>
+                                <p id="vs-a-pro" class="text-xs text-slate-700 dark:text-slate-300 font-medium"></p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-950/80 border-l-4 border-red-500 shadow-sm">
+                                <span class="text-[9px] uppercase font-bold text-red-500 dark:text-red-400 mb-1 block">Desventaja Principal</span>
+                                <p id="vs-a-con" class="text-xs text-slate-700 dark:text-slate-300 font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics A -->
+                    <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Complejidad</span> <span id="vs-a-comp-text">1/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div id="vs-a-comp-bar" class="h-full bg-cyan-500 transition-all duration-1000" style="width: 20%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Escalabilidad</span> <span id="vs-a-scale-text">1/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div id="vs-a-scale-bar" class="h-full bg-cyan-500 transition-all duration-1000" style="width: 20%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Costo Inicial</span> <span id="vs-a-cost-text">1/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden"><div id="vs-a-cost-bar" class="h-full bg-cyan-500 transition-all duration-1000" style="width: 20%"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center VS Shield -->
+                <div class="flex flex-col items-center justify-center -mx-4 z-20">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 flex items-center justify-center text-2xl font-black italic shadow-xl shadow-slate-900/20 dark:shadow-white/10 border-4 border-white dark:border-[#080b11]">VS</div>
+                </div>
+
+                <!-- Arch B Column -->
+                <div class="flex-1 flex flex-col justify-between">
+                    <div>
+                        <h3 id="vs-b-title" class="text-3xl font-bold text-slate-900 dark:text-white border-b-2 border-purple-500 pb-2 mb-2 text-right">Microservicios</h3>
+                        <div id="vs-b-cases" class="flex gap-1 mb-4 flex-wrap justify-end">
+                            <!-- Badges inyectadas por JS -->
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-950/80 border-r-4 border-purple-500 shadow-sm text-right">
+                                <span class="text-[9px] uppercase font-bold text-purple-600 dark:text-purple-400 mb-1 block">Ventaja Principal</span>
+                                <p id="vs-b-pro" class="text-xs text-slate-700 dark:text-slate-300 font-medium"></p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-white dark:bg-slate-950/80 border-r-4 border-red-500 shadow-sm text-right">
+                                <span class="text-[9px] uppercase font-bold text-red-500 dark:text-red-400 mb-1 block">Desventaja Principal</span>
+                                <p id="vs-b-con" class="text-xs text-slate-700 dark:text-slate-300 font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Metrics B -->
+                    <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Complejidad</span> <span id="vs-b-comp-text">5/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex justify-end"><div id="vs-b-comp-bar" class="h-full bg-purple-500 transition-all duration-1000" style="width: 100%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Escalabilidad</span> <span id="vs-b-scale-text">5/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex justify-end"><div id="vs-b-scale-bar" class="h-full bg-purple-500 transition-all duration-1000" style="width: 100%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold mb-1 uppercase tracking-wider text-slate-600 dark:text-slate-400"><span>Costo Inicial</span> <span id="vs-b-cost-text">5/5</span></div>
+                            <div class="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex justify-end"><div id="vs-b-cost-bar" class="h-full bg-purple-500 transition-all duration-1000" style="width: 100%"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer Segment -->
+            <div class="flex justify-between items-center border-t border-slate-200 dark:border-slate-900/60 pt-4 relative z-10 text-[10px] text-slate-500 transition-colors duration-300">
+                <span>🎯 Diseño de Arquitectura de Software de Alto Nivel</span>
+                <span class="font-mono text-purple-600/80 dark:text-purple-500/60">Exportado Vía Generador de Arquitecturas</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Sección Explicativa -->
+    <section class="max-w-[1200px] w-full mx-auto mt-4 mb-8">
+        <div class="bg-white dark:bg-[#080b11] p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-300">
+            <h2 id="explain-title" class="text-2xl font-bold text-slate-900 dark:text-white mb-4">¿Qué es la Arquitectura Monolítica? 🏢</h2>
+            <div id="explain-content" class="text-sm text-slate-600 dark:text-slate-400 space-y-4 leading-relaxed [&>p>strong]:text-slate-900 dark:[&>p>strong]:text-slate-200">
+                <!-- Se inyecta desde data.js -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Instructions Footer -->
+    <footer class="text-center text-xs text-slate-500 px-6">
+        <p>Desarrollado para exportaciones rápidas de infografías de los 12 tipos de arquitecturas. Haz clic en los textos para editarlos.</p>
+    </footer>
+
+    <!-- Interactive Scripts -->
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
